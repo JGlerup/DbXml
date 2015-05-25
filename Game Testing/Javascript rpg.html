@@ -1,0 +1,1428 @@
+<!DOCTYPE html>
+<html lang="da">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>The super duper nice fantastic game!</title>
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/general.css">
+
+    <!-- Scripts -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+	<audio id="music" type="audio/mp3" src="background1.mp3" autoplay></audio>
+	<audio id="footstep" type="audio/mp3" src="footstepFloor.mp3"></audio>
+	<audio id="soundEffect" type="audio/mp3" src=""></audio>
+	<header>
+		<div class="container-fluid">
+			<h1>The super duper nice fantastic game!</h1>
+		</div>
+	</header>
+	<section class="container-fluid">
+		<div class="row">
+			<article class="col-md-9">
+				<canvas id="game_canvas" onclick="game_canvas()" width="1280" height="720">
+					Your browser does not support the HTML5 canvas tag.
+				</canvas>
+			</article>
+			<article class="col-md-3 sidebar">
+				<h4>Controls</h4>
+				<p>Moving:</p>
+				<p>Interacting:</p>
+				<h4>Quest log</h4>
+				<p><span id="objective">Get out of the classroom.</span></p>
+				<p><span id="subjective"></span>
+			</article>
+			<button type="button" onclick="ajaxDatabaseAccess('save','Glerup')">Save</button>
+			<div id="txtResponse"></div>
+		</div>
+	</section>
+<script>
+(function () {
+  var lastTime = 0;
+  var vendors = ['ms', 'moz', 'webkit', 'o'];
+  for(var x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
+    window.requestAnimationFrame = window[vendors[x] + 'RequestAnimationFrame'];
+    window.cancelAnimationFrame = window[vendors[x] + 'CancelAnimationFrame'] || window[vendors[x] + 'CancelRequestAnimationFrame'];
+  }
+  if(!window.requestAnimationFrame)
+    window.requestAnimationFrame = function (callback, element) {
+      var currTime = new Date().getTime();
+      var timeToCall = Math.max(0, 16 - (currTime - lastTime));
+      var id = window.setTimeout(function () {
+        callback(currTime + timeToCall);
+      },
+      timeToCall);
+      lastTime = currTime + timeToCall;
+      return id;
+  };
+  if(!window.cancelAnimationFrame)
+    window.cancelAnimationFrame = function (id) {
+      clearTimeout(id);
+  };
+}());
+
+var canvas = document.getElementById('game_canvas'),
+context = canvas.getContext('2d');
+
+posX = 720;
+posY = 360;
+cutPosX = 0;
+cutPosY = 0;
+cutWidthX = 200;
+cutHeightY = 300;
+sizeX = 70;
+sizeY = 105;
+var mouseRuleXLow;
+var charReset;
+var door = 0;
+var doorToBusStop = 0;
+var locationEvent = 'classroom';
+var moving = 0;
+var units = 0;
+var dickbuttUnits;
+var caseNumber = 0;
+var roam = 1;
+var battle = 0;
+var transitionIntro = 0;
+var transitionIntroX = -1280;
+var transitionOutro = 0;
+var transitionOutroX = -1280;
+var footstep = document.getElementById('footstep');
+var music = document.getElementById('music');
+var soundEffect = document.getElementById('soundEffect');
+var subjective = document.getElementById("subjective");
+var objective = document.getElementById("objective");
+var moveSidePos = 0;
+var movePos = 0;
+var trackNumber = 1;
+var whiteboardText;
+var randomText;
+var dialogText;
+var randomMessages = Array("BIP BIP BUB","~You can't touch this. DAA-DA-DA-DA~","PC shows BCoD. RIP PC.","Your PC got a virus. Good Job!","FORMAT C:");
+var timeRandomText;
+var timeDialogText;
+var drawEarly = 0;
+var roadWarning;
+var roadKill;
+var cleaningLadyDefeated = 0;
+var pauseGame;
+
+//Battle info
+var playerHealth = 100;
+var yourTurn = 1;
+var showHealthBars;
+var opponentHealth;
+var myHealth;
+var beginBattle;
+var endBattle;
+var gooAttack;
+var combatUnits;
+var gooPosX = 250;
+var gooPosY = 250;
+var doOpponentAttack;
+var opponentAttackPosX = 650;
+var opponentAttackPosY = 200;
+var opponentTimeout;
+
+base_image = new Image();
+base_image.src = '../Chars_sprites/allinonev3.png';
+
+whity = new Image();
+whity.src = 'white.png';
+
+gooImage = new Image();
+gooImage.src = '../Weapons/snotter_fly.png';
+
+opponentAttackImage = new Image();
+opponentAttackImage.src = '../Assets/Caution.png';
+
+background = new Image();
+background.src = '../Level Design/ClassRoom.png';
+
+transitionIntroImage = new Image();
+transitionIntroImage.src = '../Level Design/Transitions/hallWayBattleBlur_trans.png';
+
+transitionOutroImage = new Image();
+transitionOutroImage.src = '../Level Design/Transitions/hallwayBlur_trans.png';
+
+dickbutt = new Image();
+var dickbuttPosX;
+var dickbuttPosY;
+var dickbuttSizeX;
+var dickbuttSizeY;
+var dickbuttCutPosX;
+var dickbuttCutPosY;
+var dickbuttCutHeightX;
+var dickbuttCutHeightY;
+
+npc1 = new Image();
+var npc1PosX;
+var npc1PosY;
+var npc1SizeX;
+var npc1SizeY;
+
+npc2 = new Image();
+var npc2PosX;
+var npc2PosY;
+var npc2SizeX;
+var npc2SizeY;
+
+battleChar1 = new Image();
+var battleChar1PosX;
+var battleChar1PosY;
+var battleChar1SizeX;
+var battleChar1SizeY;
+var battleChar1cutPosX;
+var battleChar1cutPosY;
+var battleChar1cutWidthX;
+var battleChar1cutHeightY;
+
+battleChar2 = new Image();
+var battleChar2PosX;
+var battleChar2PosY;
+var battleChar2SizeX;
+var battleChar2SizeY;
+
+music.volume = 0.0; // VOLUME 0.1
+
+document.addEventListener('keydown', updateMovement);
+canvas.addEventListener('mousedown', mouseClick);
+music.addEventListener('ended', switchTrack);
+window.addEventListener('load', render);
+var FPS = 30;
+var now;
+var then = Date.now();
+var interval = 1000/FPS;
+var delta;
+//setInterval(function() {
+//function render(){
+
+//  update();
+//  draw();
+//  window.requestAnimationFrame(render);
+//  }
+//}, 1000/FPS);
+
+function render() {
+     
+    requestAnimationFrame(render);
+     
+    now = Date.now();
+    delta = now - then;
+     
+    if ((delta > interval) && !pauseGame) {
+        // update time stuffs
+         
+        // Just `then = now` is not enough.
+        // Lets say we set fps at 10 which means
+        // each frame must take 100ms
+        // Now frame executes in 16ms (60fps) so
+        // the loop iterates 7 times (16*7 = 112ms) until
+        // delta > interval === true
+        // Eventually this lowers down the FPS as
+        // 112*10 = 1120ms (NOT 1000ms).
+        // So we have to get rid of that extra 12ms
+        // by subtracting delta (112) % interval (100).
+        // Hope that makes sense.
+         
+        then = now - (delta % interval);
+        update();
+		draw();
+        // ... Code for Drawing the Frame ...
+    }
+}
+
+function update()
+{
+	if(roam && !battle)
+	{
+		if(locationEvent == 'busstop')
+		{
+			if(posY == 200 && !roadWarning)
+			{
+				//alertBox("Sure! Walk on the road! Dork!");
+				dialogText = "Sure! Walk on the road! Dork!";
+				roadWarning = 1;
+			}
+			if(posY == 280 && !roadKill)
+			{
+				//alertBox('(ノಠ益ಠ)ノ彡︵ ┻━┻');
+				dialogText = '(ノಠ益ಠ)ノ彡︵ ┻━┻';
+				roadKill = 1;
+				startCyclingDickbutt();
+			}
+		}
+	}
+	
+	if(!roam && !battle)
+	{
+		if(beginBattle)
+		{
+			transitionIntro = 1;
+		}
+		
+		if(endBattle)
+		{
+			transitionOutro = 1;
+		}
+		
+		if(!transitionIntroX && locationEvent == "hallway" && beginBattle)
+		{
+			startBattle("../Level Design/hallWayBattle.png",'cleaning_lady.gif',50);
+		}
+		if(!transitionOutroX && locationEvent == "hallway" && endBattle)
+		{
+			transitionOutro = 0;
+			transitionOutroX = -1280;
+			background.src = "../Level Design/"+locationEvent+".png";
+			roam = 1;
+			units = 60;
+			endBattle = 0;
+			combatUnits = 0;
+		}
+	}
+	
+	//In battle
+	if(!roam && battle)
+	{
+		if(opponentHealth <= 0 && combatUnits <= 0)
+		{
+			endBattle = 1;
+			beginBattle = 0;
+		}
+		
+		//Set chars in position.
+		if(units)
+		{
+			//console.log(battleChar1PosX);
+			units = units - 1.5;
+			battleChar1PosX = battleChar1PosX + 8;
+			battleChar2PosX = battleChar2PosX - 8;
+			if(units == 1.5)
+			{
+				yourTurn = 1;
+			}
+		}
+		
+		if((opponentHealth <=0) && endBattle)
+		{
+			setTimeout(returnFromBattle(),5000);
+		}
+	}
+	drawEarly = 0;
+	updateAnimation(caseNumber);
+	
+}
+
+function returnFromBattle()
+{
+	battle = 0;
+	battleChar1 = new Image();
+	battleChar2 = new Image();
+	beginBattle = 0;
+	endBattle = 1;
+	caseNumber = 200;
+	moving = 1;
+	units = 30;
+	switchTrack();
+	doOpponentAttack = 0;
+	gooAttack = 0;
+	//alertBox('Cleaning lady yells: "ARHH NOW I DO ALL CLEAN. ;("');
+	if(locationEvent == "hallway")
+	{
+		dialogText = 'Cleaning lady yells: "ARHH NOW I DO ALL CLEAN. ;("';
+		doorToBusStop = 1;
+	}
+}
+
+function mouseClick(event)
+{
+	var totalOffsetX = 0;
+    var totalOffsetY = 0;
+    var canvasX = 0;
+    var canvasY = 0;
+	var element = canvas;
+	
+
+    do{
+        totalOffsetX += element.offsetLeft - element.scrollLeft;
+        totalOffsetY += element.offsetTop - element.scrollTop;
+    }
+    while(element = element.offsetParent)
+
+    canvasX = event.pageX - totalOffsetX;
+    canvasY = event.pageY - totalOffsetY;
+	//alertBox("X:"+canvasX+" Y:"+canvasY);
+	mouseRuleXLow = (canvas.offsetWidth/100)*21.1;
+	mouseRuleXHigh = (canvas.offsetWidth/100)*23.4375;
+	mouseRuleYLow = (canvas.offsetHeight/100)*16.66;
+	mouseRuleYHigh = (canvas.offsetHeight/100)*22.22; 	
+	if(mouseRuleXLow<canvasX && canvasX < mouseRuleXHigh && mouseRuleYLow<canvasY && canvasY<mouseRuleYHigh && locationEvent == 'classroom' && subjective.innerText == "Find the key.")
+	{
+		// Find key in classroom event.
+		dialogText = 'You found the key!';
+		//alertBox(canvasX+", "+canvasY);
+		door = 1;
+		npc2.src = '';
+		subjective.innerText = "";
+	}
+}
+
+function updateMovement(evt)
+{
+	if([37, 38, 39, 40].indexOf(evt.keyCode) > -1) {
+        evt.preventDefault();
+    }
+// Flag to put variables back if we hit an edge of the board.
+        var flag = 0;
+		var restricted = 0;
+
+        // Get where the char was before key process.
+        oldCharX = posX;
+        oldCharY = posY;
+
+        switch (evt.keyCode) {
+
+		  // Ctrl
+        case 17:
+		if(pauseGame)
+		{
+			pauseGame = null;
+			dialogText = null;
+		}
+		else {
+			if(roam)
+			{
+				var keyPress = 1;
+				if(locationEvent == 'classroom')
+				{
+					if (posX == 0 && posY == 400)
+					{
+						// If at door, Fire event
+						if(door == 1)
+						{
+							//alertBox('You walked out the door using the key.');
+							dialogText = "You walked out the door using the key.";
+							locationEvent = 'hallway';
+							background.src = '../Level Design/'+locationEvent+'.png';
+							posX = 1200;
+							posY = 400;
+							npc1.src = 'cleaning_lady.gif';
+							npc1PosX = 640;
+							npc1PosY = 360;
+							npc1SizeX = 70;
+							npc1SizeY = 105;
+							subjective.innerText = "Talk to the friendly looking'ish cleaning lady.";
+							keyPress = 0;
+						}
+						else
+						{
+							//alertBox('You cant get out. The door is  locked. "HINT: Something sparkles"');
+							dialogText = 'You cant get out. The door is  locked. "HINT: Something sparkles"';
+							subjective.innerText = "Find the key.";
+							npc2.src = '../Assets/key.png';
+							npc2PosX = 278;
+							npc2PosY = 129;
+							npc2SizeX = 15;
+							npc2SizeY = 4;
+							keyPress = 0;
+						}
+					}
+
+					if (400 <= posX && posX <= 720 && posY == 40 && !dickbutt.src)
+					{
+						whiteboardText = "Dickbutt";
+						startDickbutt();
+					}
+					  
+					if(posX == 720 && posY == 360)
+					{
+						randomPCMessage();
+					}
+				}
+				
+				if(locationEvent == 'hallway')
+				{
+					if(((posX == 640 && posY == 320) || (posX == 640 && posY == 400) || (posX == 560 && posY == 360) || (posX == 720 && posY == 360)) && keyPress)
+					{
+						if(cleaningLadyDefeated)
+						{
+							dialogText = 'Cleaning lady yells: "I HATE CLEAN! (angry sadface)"';
+						}
+						else {
+							//alertBox('Cleaning lady yells: "U DO CLEAN!, NOT ME!"');
+							dialogText = 'Cleaning lady yells: "U DO CLEAN!, NOT ME!"';
+							battleMusic();
+							//music.src = 'Hopeku___Blue_brass.mp3';
+							roam = 0;
+							moving = 1;
+							units = 30;
+							caseNumber = 200;
+							beginBattle = 1;
+							keyPress = 0;
+						}
+					}
+					
+					if(posX == 960 && posY == 600 && keyPress)
+					{
+						// If at door to bus stop, Fire event
+						if(doorToBusStop == 1)
+						{
+							//alertBox('You walked out the door.');
+							dialogText = 'You walked out the door.';
+							locationEvent = 'busstop';
+							background.src = '../Level Design/'+locationEvent+'.png';
+							posX = 480;
+							posY = 0;
+							npc1 = new Image();
+							keyPress = 0;
+						}
+						else
+						{
+							//alertBox('You cant get out. The door is  locked. "HINT: Something sparkles"');
+							dialogText = 'O-POOP!! The door is too filthy to open. Get the nice looking cleaning lady!';
+							subjective.innerText = "Still talk to the friendly looking cleaning lady! #Retard";
+							keyPress = 0;
+						}
+					}
+					
+					if(posX == 960 && posY == 40 && keyPress)
+					{
+						if(cleaningLadyDefeated)
+						{
+							//alertBox("You walked into the printer room. Shitz got realz!");
+							dialogText = "You walked into the printer room. Shitz got realz!";
+							locationEvent = "PrintingRoom";
+							background.src = '../Level Design/'+locationEvent+'.png';
+							posX = 480;
+							posY = 640;
+							npc1.src = new Image;
+							keyPress = 0;
+						}
+						else {
+							alertBox("O-POOP!! The door is too filthy to open. Get the nice looking cleaning lady!");
+						}
+					}
+				}
+				
+				if(locationEvent == 'busstop')
+				{				
+					if(posX == 480 && posY == 0 && keyPress)
+					{
+						// If at door to bus stop, Fire event
+						if(doorToBusStop == 1)
+						{
+							//alertBox('You walked inside again.');
+							dialogText = 'You walked inside again.';
+							locationEvent = 'hallway';
+							background.src = '../Level Design/'+locationEvent+'.png';
+							posX = 960;
+							posY = 600;
+							npc1.src = 'cleaning_lady.gif';
+							npc1PosX = 640;
+							npc1PosY = 360;
+							npc1SizeX = 70;
+							npc1SizeY = 105;
+							keyPress = 0;
+						}
+					}
+				}
+			}
+			if(battle)
+			{
+				
+			}
+		}
+		  
+		  
+          break;
+		
+          // Left arrow.
+        case 37:
+		if(!pauseGame)
+		{
+			if(roam)
+			{
+				if(locationEvent == 'classroom')
+				{
+					//Restricted areas in classroom
+					if((posX-80 == 720 && posY == 200) || (posX-80 == 960 && posY == 320) || (posX-80 == 480 && posY == 400) || (posX-80 == 240 && posY == 40) || (posX == 0))
+					{
+						flag = 1;
+						restricted = 1;
+					}
+				}
+				if(locationEvent == 'hallway')
+				{
+					//Restricted areas in hallway
+					if((posX-80 == 640 && posY == 360) || (posX == 0))
+					{
+						flag = 1;
+						restricted = 1;
+					}
+				}
+				if(locationEvent == 'busstop')
+				{
+					if(posY == 280)
+					{
+						flag = 1;
+						restricted = 1;				
+					}
+				}
+			  if(!moving && !restricted)
+			  {
+			  moving = 1;
+			  console.log(moving);
+			  units = 80;
+			  caseNumber = 37;
+			  }
+			  
+			}
+			if(battle)
+			{
+				
+			}
+		}
+          break;
+		  
+
+          // Right arrow.
+        case 39:
+		if(!pauseGame)
+		{
+			if(roam)
+			{
+				if(locationEvent == 'classroom')
+				{
+					//Restricted areas in classroom
+					if((posX+80 == 480 && posY == 200) || (posX+80 == 720 && posY == 320) || (posX+80 == 240 && posY == 400) || (posX+80 == 240 && posY == 40) || (posX+80 == 1280))
+					{
+						flag = 1;
+						restricted = 1;
+					}
+				}
+				if(locationEvent == 'hallway')
+				{
+					//Restricted areas in classroom
+					if((posX+80 == 640 && posY == 360) || (posX+80 == 1280))
+					{
+						flag = 1;
+						restricted = 1;
+					}
+				}
+				if(locationEvent == 'busstop')
+				{
+					if(posY == 280)
+					{
+						flag = 1;
+						restricted = 1;				
+					}
+				}
+			  if(!moving && !restricted)
+			  {
+				moving = 1;
+				console.log(moving);
+				units = 80;
+				caseNumber = 39;
+			  }
+			}
+		}
+          break;
+
+          // Down arrow
+        case 40:
+		if(!pauseGame)
+		{
+			if(roam)
+			{
+				if(locationEvent == 'classroom')
+				{
+					//Restricted areas in classroom
+					if((480 <= posX && posX <= 720 && posY+40 == 200) || (720 <= posX && posX <= 960 && posY+40 == 320) || (240 <= posX && posX <= 480 && posY+40 == 400) || (posY == 600))
+					{
+						flag = 1;
+						restricted = 1;
+					}
+				}
+				if(locationEvent == 'hallway')
+				{
+					//Restricted areas in classroom
+					if((posX == 640 && posY+40 == 360) || (posY == 600))
+					{
+						flag = 1;
+						restricted = 1;
+					}
+				}
+				if(locationEvent == 'busstop')
+				{
+					if(posY == 280)
+					{
+						flag = 1;
+						restricted = 1;				
+					}
+				}
+			  if(!moving && !restricted)
+			  {
+				moving = 1;
+				console.log(moving);
+				units = 80;
+				caseNumber = 40;
+			  }
+			}
+			if(battle && yourTurn)
+			{
+				yourTurn = 0;
+				punchAttackMethod();
+				moving = 1;
+				combatUnits = 80;
+				caseNumber = 40;
+			}
+		}
+          break;
+
+          // Up arrow 
+        case 38:
+		if(!pauseGame)
+		{
+			if(roam)
+			{
+			if(locationEvent == 'classroom')
+			{
+				if((480 <= posX && posX <= 720 && posY-40 == 200) || (720 <= posX && posX <= 960 && posY-40 == 320) || (240 <= posX && posX <= 480 && posY-40 == 400) || (posX == 240 && posY-40 == 40) || (posY-40 < 40)) {
+					flag = 1;
+					restricted = 1;
+				}
+				
+			}
+			if(locationEvent == 'hallway')
+			{	  
+				  if((640 == posX && posY-40 == 360) || (posY-40 < 40)) {
+					flag = 1;
+					restricted = 1;
+				  }
+			}
+			if(locationEvent == 'busstop')
+				{
+					if(posY == 280)
+					{
+						flag = 1;
+						restricted = 1;				
+					}
+				}
+			if(moving == 0 && restricted == 0)
+			  {
+				moving = 1;
+				console.log(moving);
+				units = 80;
+				caseNumber = 38;
+			  }
+			}
+			if(battle && yourTurn)
+			{
+				yourTurn = 0;
+				gooAttackMethod();
+				moving = 1;
+				combatUnits = 80;
+				caseNumber = 38;
+			}
+			else {
+				flag = 1;
+				restricted = 1;
+			}
+		}
+          break;
+
+        }
+
+        // If flag is set, the ship did not move.
+        // Put everything back the way it was.
+        
+		
+		
+      }
+
+function updateAnimation(caseNumbers)
+{
+	var flag = 0;
+	if(units == 80)
+	{
+		oldCharX = posX;
+        oldCharY = posY;
+	}
+	
+	if(dickbuttUnits > 0)
+	{
+		//dickbutt
+		dickbuttUnits = dickbuttUnits - 1;
+		if(locationEvent == "classroom")
+		{
+			if(dickbuttUnits > 40)
+			{
+				dickbuttCutPosX = dickbuttCutPosX - 3.725;
+			}
+			else {
+				dickbuttPosX = dickbuttPosX + 1;
+			}
+		}
+		if(locationEvent == "busstop")
+		{
+			if(dickbuttUnits > 100 && dickbuttUnits < 160)
+			{
+				dickbuttCutPosX = dickbuttCutPosX - 12.1;
+			}
+			if(dickbuttUnits < 100)
+			{
+				dickbuttPosX = dickbuttPosX + 12.8;
+				if(dickbuttPosX >= 120 && dickbuttPosX <= 130)
+				{
+					hitCharacter();
+				}
+			}
+		}
+	}
+	
+	if(units > 0 || combatUnits > 0)
+	{
+		//Left arrow
+		switch(caseNumbers) {
+		
+			case 37:
+				if(roam == 1)
+				{
+					if(units == 20 || units == 40 || units == 60 || units == 80)
+					{
+					if(moveSidePos == 0){cutPosX = 2200;}
+					if(moveSidePos == 1){cutPosX = 2400;}
+					if(moveSidePos == 2){cutPosX = 2600;}
+					if(moveSidePos == 3){cutPosX = 2400;}
+					moveSidePos++;
+					if(moveSidePos == 4)
+					{moveSidePos = 0;}
+					}
+					units = units - 5;
+					posX = posX - 5;
+					
+					if (posX < 0)
+					{
+						// If at edge, reset char position and set flag.
+						posX = 0;
+						flag = 1;
+					}
+					if(!(flag))
+					{
+					resetChar();
+					}
+				}
+			break;
+			
+			// Right arrow
+			case 39:
+				if(roam == 1)
+				{
+					if(units == 20 || units == 40 || units == 60 || units == 80)
+					{
+					if(moveSidePos == 0){cutPosX = 1400;}
+					if(moveSidePos == 1){cutPosX = 1600;}
+					if(moveSidePos == 2){cutPosX = 1800;}
+					if(moveSidePos == 3){cutPosX = 1600;}
+					moveSidePos++;
+					if(moveSidePos == 4)
+					{moveSidePos = 0;}
+					}
+					units = units - 5;
+					posX = posX + 5;
+					
+					  if (posX > 1210) {
+						// If at edge, reset char position and set flag.
+						posX = 1170;
+						flag = 1;
+					  }
+					  if(!(flag))
+				  {
+					resetChar();
+				  }
+				}  
+			break;
+			
+			//Down arrow
+			case 40:
+				if(roam == 1)
+				{
+					units = units - 5;
+					posY = posY + 2.5;
+					if(units == 20 || units == 40 || units == 60 || units == 80)
+					{
+					if(movePos == 0){cutPosX = 200;}
+					if(movePos == 1){cutPosX = 400;}
+					movePos++;
+					if(movePos == 2)
+					{movePos = 0;}
+					}
+				  if (posY > 615) {
+					// If at edge, reset ship position and set flag.
+					posY = 600;
+					flag = 1;
+				  }
+				  if(!(flag))
+				  {
+					resetChar();
+				  }
+				}
+				if(battle)
+				{
+					//alert(punchAttack);
+					//Battle animation punchAttack
+					combatUnits = combatUnits - 2;
+					if(combatUnits > 60)
+					{
+						battleChar1PosX = battleChar1PosX + 60;
+						battleChar1PosY = battleChar1PosY - 10;
+					}
+					if(combatUnits == 60)
+					{
+						battleChar1cutPosX = 3000;
+					}
+					if(combatUnits == 50)
+					{
+						battleChar1cutPosX = 3200;
+					}
+					if(combatUnits == 40)
+					{
+						battleChar1cutPosX = 3400;
+						soundEffect.src = "../Sounds/klask.wav";
+						soundEffect.play();
+					}
+					if(combatUnits == 30)
+					{
+						battleChar1cutPosX = 2800;
+					}
+					if(combatUnits < 30 && combatUnits > 0)
+					{
+						battleChar1PosX = battleChar1PosX - 35;
+						battleChar1PosY = battleChar1PosY + 6;
+					}
+					if(combatUnits == 0)
+					{
+						opponentHealth-=punchAttackDamage();
+						if(opponentHealth <= 0)
+						{
+							opponentDefeated();
+						}
+						//alert('walla');
+						if(opponentTimeout)
+						{
+							clearTimeout(opponentTimeout);
+						}
+						if(opponentHealth > 0)
+						{
+							opponentTimeout = setTimeout(opponentAttack(), 5000);
+						}
+						punchAttack = 0;
+						battleChar1PosX = 120;
+						battleChar1PosY = 210;
+					}
+				}
+			break;
+			
+			//Up arrow
+			case 38:
+				if(roam)
+				{
+					units = units - 5;
+					posY = posY - 2.5;
+					if(units == 20 || units == 40 || units == 60 || units == 80)
+					{
+					if(movePos == 0){cutPosX = 800;}
+					if(movePos == 1){cutPosX = 1000;}
+					movePos++;
+					if(movePos == 2)
+					{movePos = 0;}
+					}
+				  if (posY < 0) {
+					// If at edge, reset ship position and set flag.
+					posY = 0;
+					flag = 1;
+				  }
+				  if(!flag)
+				  {
+					resetChar();
+				  }
+				}
+				if(battle)
+				{
+					//alert(gooAttack);
+					//Battle animation gooAttack
+					combatUnits = combatUnits - 5;
+					if(combatUnits == 75)
+					{
+						battleChar1cutPosX = 3800;
+					}
+					if(combatUnits == 65)
+					{
+						battleChar1cutPosX = 4000;
+					}
+					if(combatUnits < 66)
+					{
+						gooPosX = gooPosX + 45;
+						gooPosY = gooPosY - 8;
+					}
+					if(combatUnits == 0)
+					{
+						opponentHealth-=gooAttackDamage();
+						if(opponentHealth <= 0)
+						{
+							opponentDefeated();
+						}
+						//alert('walla');
+						if(opponentTimeout)
+						{
+							clearTimeout(opponentTimeout);
+						}
+						if(opponentHealth > 0)
+						{
+							opponentTimeout = setTimeout(opponentAttack(), 5000);
+						}
+						gooAttack = 0;
+						gooPosX = 250;
+						gooPosY = 250;
+						battleChar1cutPosX = 3600;
+					}
+				}
+			break;
+			
+			//transitionIntro
+			case 200:
+				if(transitionIntro)
+				{
+					units = units - 1.5;
+					transitionIntroX = transitionIntroX + 64;
+					context.clearRect ( 0 , 0 , canvas.width, canvas.height );
+					context.drawImage(transitionIntroImage,transitionIntroX,0,1280,720);
+					
+				}
+				if(transitionOutro)
+				{
+					units = units - 1.5;
+					transitionOutroX = transitionOutroX + 64;
+					context.clearRect ( 0 , 0 , canvas.width, canvas.height );
+					context.drawImage(transitionOutroImage,transitionOutroX,0,1280,720);
+				}
+			break;
+			
+			//transitionIntro
+			case 300:
+				if(doOpponentAttack && combatUnits > 0)
+				{
+					//Opponent battle animation
+					combatUnits = combatUnits - 5;
+					opponentAttackPosX = opponentAttackPosX - 20;
+					opponentAttackPosY = opponentAttackPosY + 5;
+					if(combatUnits == 30)
+					{
+						battleChar1cutPosX = 4200;
+						soundEffect.src = "../Sounds/uurh.wav";
+						soundEffect.play();
+					}
+					if(!combatUnits)
+					{
+						doOpponentAttack = 0;
+						opponentAttackPosX = 650;
+						opponentAttackPosY = 250;
+						yourTurn = 1;
+						myHealth -= randomIntFromInterval(5,10);
+						battleChar1cutPosX = 2800;
+					}
+				}
+			break;
+		}
+	}
+	
+	if (flag)
+	{
+          posX = oldCharX;
+          posY = oldCharY;
+    }
+		
+	if((units == 0 || units == 40 || (combatUnits == 0 && battle)) && moving == 1)
+	{
+		if(units == 0 || (combatUnits == 0 && battle))
+		{
+			moving = 0;
+			transitionIntro = 0;
+			transitionOutro = 0;
+		}
+		
+		
+		if((caseNumbers == 37 || caseNumbers == 38 || caseNumbers == 39 || caseNumbers == 40) && roam)
+		{
+			footstep.pause();
+			footstep.currentTime = 0;
+			footstep.play();
+		}
+	}
+	
+}	  
+	  
+function draw()
+{
+if(roam == 1)
+{
+	context.clearRect ( 0 , 0 , canvas.width, canvas.height );
+	context.drawImage(background,0,0,1280,720);
+	switch(locationEvent) {
+		
+		case "classroom":
+			if(dickbutt)
+			{
+				context.drawImage(dickbutt, dickbuttCutPosX, dickbuttCutPosY, dickbuttCutHeightX, dickbuttCutHeightY, dickbuttPosX, dickbuttPosY, dickbuttSizeX, dickbuttSizeY);
+			}
+			
+			if(whiteboardText)
+			{
+				context.font="30px Verdana";
+				// Create gradient
+				var gradient=context.createLinearGradient(400,0,720,0);
+				gradient.addColorStop("0","magenta");
+				gradient.addColorStop("0.5","blue");
+				gradient.addColorStop("1.0","red");
+				// Fill with gradient
+				context.fillStyle=gradient;
+				context.fillText(whiteboardText,530,70);
+			}
+			if(npc2)
+			{
+				context.drawImage(npc2, 250, 0, 250, 100, npc2PosX, npc2PosY, npc2SizeX, npc2SizeY);
+			}
+			//context.drawImage(whity, cutPosX, cutPosY, cutWidthX, 300, posX, posY, 70, 105);
+			if(randomText)
+			{
+				context.font="20px Comic-Sans";
+				var textWidth = context.measureText(randomText);
+				drawBubble(context, 770,330,textWidth.width+10, 30, 20);	
+				context.fillStyle="green";
+				context.fillText(randomText,775,350);
+			}
+			if(dialogText)
+			{
+				context.font="20px Comic-Sans";
+				//alertBox(dialogText);
+				var textWidth = context.measureText(dialogText);
+				drawDialog(context, 400,100,textWidth.width+10, 30, 20);
+				context.fillStyle="black";
+				context.fillText(dialogText,405,120);
+				pauseGame = 1;
+			}
+		break;
+		
+		case "hallway":
+			if(posY < npc1PosY) 
+			{
+				context.drawImage(base_image, cutPosX, cutPosY, cutWidthX, cutHeightY, posX, posY, sizeX, sizeY);
+				drawEarly = 1;
+			} else {
+				drawEarly = 0;
+			}
+			context.drawImage(npc1, npc1PosX, npc1PosY, npc1SizeX, npc1SizeY);
+			if(dialogText)
+			{
+				context.font="20px Comic-Sans";
+				//alertBox(dialogText);
+				var textWidth = context.measureText(dialogText);
+				drawDialog(context, 400,100,textWidth.width+10, 30, 20);
+				context.fillStyle="black";
+				context.fillText(dialogText,405,120);
+				pauseGame = 1;
+			}
+		break;
+		
+		case "busstop":
+			if(dickbutt)
+			{
+				context.drawImage(base_image, cutPosX, cutPosY, cutWidthX, cutHeightY, posX, posY, sizeX, sizeY);
+				drawEarly = 1;
+				context.drawImage(dickbutt, dickbuttCutPosX, dickbuttCutPosY, dickbuttCutHeightX, dickbuttCutHeightY, dickbuttPosX, dickbuttPosY, dickbuttSizeX, dickbuttSizeY);
+			}
+			if(dialogText)
+			{
+				context.font="20px Comic-Sans";
+				//alertBox(dialogText);
+				var textWidth = context.measureText(dialogText);
+				drawDialog(context, 400,100,textWidth.width+10, 30, 20);
+				context.fillStyle="black";
+				context.fillText(dialogText,405,120);
+				pauseGame = 1;
+			}
+		break;
+	}
+	if(!drawEarly)
+	{
+		context.drawImage(base_image, cutPosX, cutPosY, cutWidthX, cutHeightY, posX, posY, sizeX, sizeY);
+	}
+}
+if(battle && !transitionIntro)
+{
+	context.clearRect ( 0 , 0 , canvas.width, canvas.height );
+	context.drawImage(background,0,0,1280,720);
+	context.drawImage(battleChar1, battleChar1cutPosX, battleChar1cutPosY, battleChar1cutWidthX, battleChar1cutHeightY, battleChar1PosX, battleChar1PosY, battleChar1SizeX, battleChar1SizeY);
+	context.drawImage(battleChar2, 0, 0, cutWidthX, 300, battleChar2PosX, battleChar2PosY, battleChar2SizeX, battleChar2SizeY);
+	if(showHealthBars)
+	{
+		context.fillStyle="#FF0000";
+		context.fillRect(battleChar1PosX,battleChar1PosY-50,(myHealth/playerHealth)*200,30);
+		context.fillRect(battleChar2PosX,battleChar2PosY-50,(opponentHealth/showHealthBars)*200,30);
+	}
+	
+	if(gooAttack)
+	{
+		context.drawImage(gooImage, gooPosX, gooPosY, 50, 50);
+	}
+	
+	if(doOpponentAttack)
+	{
+		context.drawImage(opponentAttackImage, opponentAttackPosX, opponentAttackPosY);
+	}
+}
+}
+
+function startBattle(place,opponent,healthPoints)
+{
+	transitionIntro = 0;
+	transitionIntroX = -1280;
+	background.src = place;
+	battle = 1;
+	yourTurn = 1;
+	units = 60;
+			
+	battleChar1.src = 'sprite.png';
+	battleChar1PosX = -200;
+	battleChar1PosY = 210;
+	battleChar1SizeX = 200;
+	battleChar1SizeY = 300;
+	battleChar1cutPosX = 1200;
+	battleChar1cutWidthX = 200;
+	battleChar1cutHeightY = 300;
+	battleChar1cutPosY = 0;
+			
+	battleChar2.src = opponent;
+	battleChar2PosX = 1280;
+	battleChar2PosY = 210;
+	battleChar2SizeX = 200;
+	battleChar2SizeY = 300;
+	showHealthBars = healthPoints;
+	opponentHealth = healthPoints;
+	myHealth = playerHealth;
+}
+
+function resetChar()
+{
+	if(charReset)
+	{
+		clearTimeout(charReset);
+	}
+	charReset = setTimeout(function(){cutPosX = 0;	cutWidthX = 200;},700);
+}
+
+function alertBox(str)
+{
+	alert(str);
+}
+
+function game_canvas() {
+	
+}
+
+function switchTrack()
+{
+	trackNumber++;
+	if(trackNumber == 5)
+	{
+		trackNumber = 1;
+	}
+	if(battle == 0)
+	{
+		music.src = "background"+trackNumber+".mp3";
+		music.play();
+	}
+	else {
+		music.play();
+	}
+}
+
+function battleMusic()
+{
+	var battleTrack = randomIntFromInterval(0,1);
+	music.volume = 0.1;
+	music.src = "battle"+battleTrack+".mp3";
+	music.play();
+}
+
+function randomPCMessage()
+{
+	randomText = randomMessages[randomIntFromInterval(0,randomMessages.length-1)];
+	clearTimeout(timeRandomText);
+	timeRandomText = setTimeout(function(){randomText = null;}, 2000);
+}
+
+function dialogBubble(dialog)
+{
+	dialogText = dialog;
+}
+
+function drawBubble(ctx, x, y, w, h, radius)
+{
+  var r = x + w;
+  var b = y + h;
+  ctx.beginPath();
+  ctx.strokeStyle="black";
+  ctx.lineWidth="2";
+  ctx.moveTo(x+radius, y);
+  ctx.lineTo(r-radius, y);
+  ctx.quadraticCurveTo(r, y, r, y+radius);
+  ctx.lineTo(r, y+h-radius);
+  ctx.quadraticCurveTo(r, b, r-radius, b);
+  ctx.lineTo(x+radius, b);
+  ctx.lineTo(x+radius/2, y+50);
+  ctx.lineTo(x+radius * 2, y+30);
+  ctx.quadraticCurveTo(x, b, x, b-radius);
+  ctx.lineTo(x, y+radius);
+  ctx.quadraticCurveTo(x, y, x+radius, y);
+  ctx.stroke();
+  ctx.fillStyle="white";
+  ctx.fill()
+}
+
+function drawDialog(ctx, x, y, w, h, radius)
+{
+  var r = x + w;
+  var b = y + h;
+  ctx.beginPath();
+  ctx.strokeStyle="black";
+  ctx.lineWidth="2";
+  ctx.moveTo(x+radius, y);
+  ctx.lineTo(r-radius, y);
+  ctx.quadraticCurveTo(r, y, r, y+radius);
+  ctx.lineTo(r, y+h-radius);
+  ctx.quadraticCurveTo(r, b, r-radius, b);
+  ctx.lineTo(x+radius, b);
+  ctx.lineTo(x+radius/2, y+50);
+  ctx.lineTo(x+radius * 2, y+30);
+  ctx.quadraticCurveTo(x, b, x, b-radius);
+  ctx.lineTo(x, y+radius);
+  ctx.quadraticCurveTo(x, y, x+radius, y);
+  ctx.stroke();
+  ctx.fillStyle="white";
+  ctx.fill()
+}
+
+function gooAttackMethod()
+{
+	gooAttack = 1;
+}
+
+function punchAttackMethod()
+{
+	punchAttack = 1;
+}
+
+function gooAttackDamage()
+{
+	return randomIntFromInterval(7,12);
+}
+
+function punchAttackDamage()
+{
+	return randomIntFromInterval(10,15);
+}
+
+function randomIntFromInterval(min,max)
+{
+    return Math.floor(Math.random()*(max-min+1)+min);
+}
+
+function opponentAttack()
+{
+	doOpponentAttack = 1;
+	caseNumber = 300;
+	combatUnits = 80;
+}
+
+function startDickbutt()
+{
+	dickbutt.src = "../Assets/dickbutt.png";
+	dickbuttPosX = 885;
+	dickbuttPosY = 60;
+	dickbuttSizeX = 40;
+	dickbuttSizeY = 40;
+	dickbuttCutPosX = 149;
+	dickbuttCutPosY = 0;
+	dickbuttCutHeightX = 149;
+	dickbuttCutHeightY = 155;
+	dickbuttUnits = 80;
+}
+
+function startCyclingDickbutt()
+{
+	dickbutt.src = "../Assets/IndianBike.png";
+	dickbuttPosX = 0;
+	dickbuttPosY = 200;
+	dickbuttSizeX = 363;
+	dickbuttSizeY = 161.5;
+	dickbuttCutPosX = 726;
+	dickbuttCutPosY = 0;
+	dickbuttCutHeightX = 726;
+	dickbuttCutHeightY = 323;
+	dickbuttUnits = 200;
+	music.src = "dickbutt.m4a";
+	music.play();
+	footstep.src = "scream.mp3";
+	footstep.play();
+}
+
+function hitCharacter()
+{
+	//posY = posY + 40;
+	cutPosX = 4400;
+}
+
+function opponentDefeated()
+{
+	opponentHealth = 0;
+	if(locationEvent == "hallway")
+	{
+		cleaningLadyDefeated = 1;
+	}
+}
+
+function ajaxDatabaseAccess(what,user) {
+    if (what.length == 0) { 
+        document.getElementById("txtResponse").innerHTML = "Error";
+        return;
+    } else {
+        var xmlhttp = new XMLHttpRequest();
+        xmlhttp.onreadystatechange = function() {
+            if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+                document.getElementById("txtResponse").innerHTML = xmlhttp.responseText;
+            }
+        }
+        xmlhttp.open("GET", "../Database access/model.php?method="+what+"&user="+user+"&posx="+posX+"&posy="+posY, true);
+        xmlhttp.send();
+    }
+}
+</script>
+
+</body>
+</html>
