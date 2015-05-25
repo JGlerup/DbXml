@@ -47,6 +47,7 @@
 				<p><span id="subjective"></span>
 			</article>
 			<button type="button" onclick="ajaxDatabaseAccess('save','Glerup')">Save</button>
+			<button type="button" onclick="ajaxDatabaseAccess('load','Glerup')">load</button>
 			<div id="txtResponse"></div>
 		</div>
 	</section>
@@ -1416,6 +1417,12 @@ function ajaxDatabaseAccess(what,user) {
         xmlhttp.onreadystatechange = function() {
             if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
                 document.getElementById("txtResponse").innerHTML = xmlhttp.responseText;
+				if(what == "load")
+				{
+					var array = xmlhttp.responseText.split(',');
+					posX = array[0];
+					posY = array[1];
+				}
             }
         }
         xmlhttp.open("GET", "../Database access/model.php?method="+what+"&user="+user+"&posx="+posX+"&posy="+posY, true);
