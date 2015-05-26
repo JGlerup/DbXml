@@ -1419,13 +1419,33 @@ function ajaxDatabaseAccess(what,user) {
                 document.getElementById("txtResponse").innerHTML = xmlhttp.responseText;
 				if(what == "load")
 				{
-					var array = xmlhttp.responseText.split(',');
-					posX = array[0];
-					posY = array[1];
+					locationEvent = xmlhttp.responseText;
+					background.src = '../Level Design/'+locationEvent+'.png';
+					cutPosX = 0;
+					cutPosY = 0;
+					cutWidthX = 200;
+					cutHeightY = 300;
+					sizeX = 70;
+					sizeY = 105;
+					if(xmlhttp.responseText == "classroom")
+					{
+						posX = 720;
+						posY = 360;						
+					}
+					if(xmlhttp.responseText == "hallway")
+					{
+						posX = 1200;
+						posY = 400;
+					}
+					if(xmlhttp.responseText == "busstop")
+					{
+						posX = 480;
+						posY = 0;
+					}
 				}
             }
         }
-        xmlhttp.open("GET", "../Database access/model.php?method="+what+"&user="+user+"&posx="+posX+"&posy="+posY, true);
+        xmlhttp.open("GET", "../Database access/model.php?method="+what+"&user="+user+"&location="+locationEvent, true);
         xmlhttp.send();
     }
 }

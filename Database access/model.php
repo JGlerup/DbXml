@@ -12,7 +12,7 @@ switch ($case) {
 	//noget med repo->find her
 		$user = $repo->find($_GET['user']);
 		var_dump($user);
-		$response = $repo->save($_GET['user'],$_GET['posx'],$_GET['posy'],$user['Progression']);
+		$response = $repo->save($_GET['user'],$_GET['location'],$user['Progression']);
 		echo $response;
         break;
 		

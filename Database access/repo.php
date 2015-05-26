@@ -70,15 +70,15 @@ class Repository
         return $stmt->fetchAll();
     }
 
-    public function save($userName,$posX,$posY,$id)
+    public function save($userName,$location,$id)
     {
         // If the UserName is set, we're updating an existing record
 		$progressExist = $this->findProgress($id);
         if (isset($progressExist['id'])) {
-            return $this->update($id,$posX,$posY);
+            return $this->update($id,$location);
         }
 		$P_model = 1;
-		$Position = $posX.",".$posY;
+		$Position = $location;
         $stmt = $this->connection->prepare('
             INSERT INTO progress 
                 (id, P_model, Position) 
@@ -91,7 +91,7 @@ class Repository
         return $stmt->execute();
     }
 
-    public function update($id,$posX,$posY)
+    public function update($id,$location)
     {
         if (!isset($id)) {
             // We can't update a record unless it exists...
@@ -100,7 +100,7 @@ class Repository
             );
         }
 		$P_model = 2;
-		$Position = $posX.",".$posY;
+		$Position = $location;
         $stmt = $this->connection->prepare('
             UPDATE progress
             SET id = :id,
