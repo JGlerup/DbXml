@@ -29,6 +29,11 @@ switch ($case) {
 		echo json_encode($user);
 		var_dump($user);
         break;
+		
+	case 'delete':
+		$response = $repo->deleteUser($_GET['user']);
+		echo $response;
+        break;
 	
     default:
         

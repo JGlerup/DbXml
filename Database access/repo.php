@@ -69,6 +69,15 @@ class Repository
         //    echo $user[0]->UserName;
         return $stmt->fetchAll();
     }
+	
+	public function deleteUser($UserName)
+    {
+        $stmt = $this->connection->prepare('
+            DELETE FROM user WHERE username =  :UserName
+        ');
+		$stmt->bindParam(':UserName', $UserName);
+        return $stmt->execute();
+    }
 
     public function save($userName,$location,$id)
     {
